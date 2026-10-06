@@ -59,7 +59,7 @@ export async function generateMission(input, { apiKey, model, fetchImpl = fetch 
     }
     if (!response.ok) throw Object.assign(new Error('Generation provider error'), { status: response.status === 429 ? 429 : 502 })
     const payload = await response.json().catch(() => null)
-    const text = payload?.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('')
+    const text = payload?.candidates?.[0]?.content?.parts?.filter((part) => part.thought !== true).map((part) => part.text || '').join('')
     try {
       return parseMission(text || '', input)
     } catch (error) {

@@ -63,6 +63,18 @@ test('sends the key in a header and returns only the validated mission', async (
   assert.equal(mission.steps.length, 3)
 })
 
+test('ignores Gemma thought parts and parses only its final response', async () => {
+  const input = validateMissionInput({ duration: 10, environment: 'porch', movement: 'still', focus: 'sounds', context: '' })
+  const result = await generateMission(input, {
+    apiKey: 'key', model: 'gemma-4-26b-a4b-it',
+    fetchImpl: async () => ({ ok: true, json: async () => ({ candidates: [{ content: { parts: [
+      { text: 'Reasoning that is not JSON', thought: true },
+      { text: JSON.stringify({ title: 'Listen nearby', question: 'Which sound changes when you become still?', steps: ['Stand in a familiar place.', 'Listen for one minute.', 'Notice a sound you had missed.'] }) },
+    ] } }] }) }),
+  })
+  assert.equal(result.title, 'Listen nearby')
+})
+
 test('maps quota, provider failure and timeout without leaking upstream details', async () => {
   const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '' })
   await assert.rejects(generateMission(input, { apiKey: 'key', model: 'm', fetchImpl: async () => ({ ok: false, status: 429 }) }), { status: 429 })
