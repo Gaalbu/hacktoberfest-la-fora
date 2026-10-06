@@ -1,6 +1,6 @@
-# Lá Fora
+# Out There
 
-A small, bilingual observation mission for taking a mindful break close to home. Choose a few minutes, a familiar place and a focus; Gemma suggests one question and three simple steps. Save the mission, put your phone away, then record what you noticed.
+A small English-only observation mission for taking a mindful break close to home. Choose a few minutes, a familiar place and a focus; Gemma suggests one question and three simple steps. Save the mission, put your phone away, then record what you noticed.
 
 **Status:** MVP in progress. Live Gemma generation requires a free Gemini API key on the server. The project does not include a bundled demo response or claim a completed field test.
 
