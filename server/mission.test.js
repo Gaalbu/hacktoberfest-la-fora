@@ -27,6 +27,13 @@ test('rejects unsupported choices, locales and oversized context', () => {
   assert.throws(() => validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'shapes', context: '', language: 'pt' }), /Invalid mission preferences/)
 })
 
+test('supports everyday places and only allows stationary commute pauses', () => {
+  for (const environment of ['commute', 'work', 'campus', 'home', 'park']) {
+    assert.equal(validateMissionInput({ duration: 5, environment, movement: 'still', focus: 'sounds', context: '', language: 'en' }).environment, environment)
+  }
+  assert.throws(() => validateMissionInput({ duration: 5, environment: 'commute', movement: 'walk', focus: 'sounds', context: '', language: 'en' }), /Invalid mission preferences/)
+})
+
 test('accepts only a safe mission with one question and three concise steps', () => {
   const mission = parseMission(JSON.stringify({
     title: 'Listen nearby',
@@ -104,6 +111,21 @@ test('requests and accepts a Brazilian Portuguese mission when selected', async 
   assert.match(sentPrompt, /natural, idiomatic language/)
   assert.match(sentPrompt, /property names exactly in English as "title", "question", and "steps"/)
   assert.equal(mission.title, 'Sons da varanda')
+})
+
+test('keeps commute missions stationary and away from traffic', async () => {
+  const input = validateMissionInput({ duration: 5, environment: 'commute', movement: 'still', focus: 'sounds', context: '', language: 'en' })
+  let sentPrompt = ''
+  await generateMission(input, {
+    apiKey: 'key', model: 'gemma-4-26b-a4b-it',
+    fetchImpl: async (_url, options) => {
+      sentPrompt = JSON.parse(options.body).contents[0].parts[0].text
+      return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: JSON.stringify({ title: 'Wait and notice', question: 'What changes while you wait here?', steps: ['Stay in a safe place away from traffic.', 'Notice one sound around you.', 'Keep waiting until it is safe to continue.'] }) }] } }] }) }
+    },
+  })
+  assert.match(sentPrompt, /stationary/)
+  assert.match(sentPrompt, /Never use the phone or follow instructions while driving/)
+  assert.match(sentPrompt, /boarding, or getting off a vehicle/)
 })
 
 test('maps quota, provider failure and timeout without leaking upstream details', async () => {

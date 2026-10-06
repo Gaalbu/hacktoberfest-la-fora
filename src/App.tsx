@@ -16,7 +16,8 @@ const copy = {
     duration: 'Your time', place: 'Where are you?', movement: 'Your pace', focus: 'Notice',
     context: 'A detail about this place (optional)', contextHint: 'Up to 200 characters. No address, please.',
     generate: 'Make my mission', minutes: 'minutes', still: 'Stay nearby', walk: 'Take a short walk',
-    places: { porch: 'Porch', yard: 'Yard', park: 'Familiar park' },
+    places: { commute: 'Commute pause', work: 'Work break', campus: 'College', home: 'Near home', park: 'Familiar park' },
+    commuteSafety: 'Only while safely stopped—not while driving, cycling, crossing, boarding or getting off.',
     focuses: { shapes: 'Shapes', sounds: 'Sounds', light: 'Light & shade' },
     loading: 'Making your mission…', error: 'Could not make a mission right now.', retry: 'Try again',
     mission: 'YOUR MISSION', return: 'What did you notice?',
@@ -47,7 +48,8 @@ const copy = {
     duration: 'Seu tempo', place: 'Onde você está?', movement: 'Seu ritmo', focus: 'Observe',
     context: 'Um detalhe deste lugar (opcional)', contextHint: 'Até 200 caracteres. Sem endereço, por favor.',
     generate: 'Criar minha missão', minutes: 'minutos', still: 'Ficar por perto', walk: 'Fazer uma caminhada curta',
-    places: { porch: 'Varanda', yard: 'Quintal', park: 'Parque conhecido' },
+    places: { commute: 'Pausa no trajeto', work: 'Intervalo do trabalho', campus: 'Faculdade', home: 'Perto de casa', park: 'Parque conhecido' },
+    commuteSafety: 'Use só quando estiver parado em segurança — nunca dirigindo, pedalando, atravessando, embarcando ou desembarcando.',
     focuses: { shapes: 'Formas', sounds: 'Sons', light: 'Luz e sombra' },
     loading: 'Preparando sua missão…', error: 'Não foi possível criar uma missão agora.', retry: 'Tentar novamente',
     mission: 'SUA MISSÃO', return: 'O que você percebeu?',
@@ -85,7 +87,7 @@ function App() {
     document.querySelector('meta[name="description"]')?.setAttribute('content', t.description)
   }, [language, t])
   const [duration, setDuration] = useState(10)
-  const [environment, setEnvironment] = useState<'porch' | 'yard' | 'park'>('porch')
+  const [environment, setEnvironment] = useState<'commute' | 'work' | 'campus' | 'home' | 'park'>('home')
   const [movement, setMovement] = useState<'still' | 'walk'>('still')
   const [focus, setFocus] = useState<'shapes' | 'sounds' | 'light'>('sounds')
   const [context, setContext] = useState('')
@@ -151,8 +153,9 @@ function App() {
 
     {view === 'prepare' && <section className="panel prepare" aria-labelledby="prepare-title"><div className="section-head"><span className="step-number">01</span><div><p className="eyebrow">{t.start}</p><h2 id="prepare-title">{t.startTitle}</h2></div></div>
       <fieldset><legend>{t.duration}</legend><div className="choice-row">{[5, 10, 15].map((minutes) => <button type="button" className={`choice ${duration === minutes ? 'selected' : ''}`} aria-pressed={duration === minutes} key={minutes} onClick={() => setDuration(minutes)}>{minutes} <small>{t.minutes}</small></button>)}</div></fieldset>
-      <fieldset><legend>{t.place}</legend><div className="choice-row">{(Object.keys(t.places) as Array<keyof typeof t.places>).map((place) => <button type="button" className={`choice ${environment === place ? 'selected' : ''}`} aria-pressed={environment === place} key={place} onClick={() => setEnvironment(place)}>{t.places[place]}</button>)}</div></fieldset>
-      <fieldset><legend>{t.movement}</legend><div className="choice-row">{(['still', 'walk'] as const).map((pace) => <button type="button" className={`choice ${movement === pace ? 'selected' : ''}`} aria-pressed={movement === pace} key={pace} onClick={() => setMovement(pace)}>{pace === 'still' ? t.still : t.walk}</button>)}</div></fieldset>
+      <fieldset><legend>{t.place}</legend><div className="choice-row">{(Object.keys(t.places) as Array<keyof typeof t.places>).map((place) => <button type="button" className={`choice ${environment === place ? 'selected' : ''}`} aria-pressed={environment === place} key={place} onClick={() => { setEnvironment(place); if (place === 'commute') setMovement('still') }}>{t.places[place]}</button>)}</div></fieldset>
+      {environment === 'commute' && <p className="safety commute-note">{t.commuteSafety}</p>}
+      <fieldset><legend>{t.movement}</legend><div className="choice-row">{(['still', 'walk'] as const).map((pace) => <button type="button" className={`choice ${movement === pace ? 'selected' : ''}`} aria-pressed={movement === pace} disabled={environment === 'commute' && pace === 'walk'} key={pace} onClick={() => setMovement(pace)}>{pace === 'still' ? t.still : t.walk}</button>)}</div></fieldset>
       <fieldset><legend>{t.focus}</legend><div className="choice-row">{(Object.keys(t.focuses) as Array<keyof typeof t.focuses>).map((item) => <button type="button" className={`choice ${focus === item ? 'selected' : ''}`} aria-pressed={focus === item} key={item} onClick={() => setFocus(item)}>{t.focuses[item]}</button>)}</div></fieldset>
       <label className="context-label" htmlFor="context">{t.context}</label><textarea id="context" maxLength={200} value={context} onChange={(event) => setContext(event.target.value)} placeholder={t.contextHint} rows={2} />
       {error && <p className="error" role="alert">{error}</p>}
