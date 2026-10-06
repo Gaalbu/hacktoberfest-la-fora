@@ -15,10 +15,15 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).then((response) => {
-      if (response.ok) caches.open(cacheName).then((cache) => cache.put('/', response.clone()))
-      return response
-    }).catch(async () => (await caches.match('/')) || Response.error()))
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(request)
+        if (response.ok) await caches.open(cacheName).then((cache) => cache.put('/', response.clone()))
+        return response
+      } catch {
+        return (await caches.match('/')) || Response.error()
+      }
+    })())
     return
   }
 
