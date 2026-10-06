@@ -1,6 +1,27 @@
 export type SavedCard<T> = { mission: T; notes: [string, string, string] }
 
 const storageKey = 'la-fora-card-v1'
+const languageKey = 'out-there-language'
+
+export type Language = 'en' | 'pt-BR'
+
+export function readLanguage(): Language | null {
+  try {
+    const language = localStorage.getItem(languageKey)
+    return language === 'en' || language === 'pt-BR' ? language : null
+  } catch {
+    return null
+  }
+}
+
+export function writeLanguage(language: Language): boolean {
+  try {
+    localStorage.setItem(languageKey, language)
+    return true
+  } catch {
+    return false
+  }
+}
 
 export function readSavedCard<T>(): SavedCard<T> | null {
   try {

@@ -1,6 +1,6 @@
 # Out There
 
-A small English-only observation mission for taking a mindful break close to home. Choose a few minutes, a familiar place and a focus; Gemma suggests one question and three simple steps. Save the mission, put your phone away, then record what you noticed.
+A bilingual observation guide for taking a mindful break close to home. Choose English or Brazilian Portuguese, a few minutes, a familiar place and a focus; Gemma suggests one question and three simple steps in your chosen language. Save the mission, put your phone away, then record what you noticed.
 
 **Status:** MVP in progress. Live Gemma generation requires a free Gemini API key on the server. The project does not include a bundled demo response or claim a completed field test.
 
@@ -23,7 +23,7 @@ Open http://localhost:3000. The app stores only the latest mission and its notes
 - `GEMMA_MODEL`: supported Gemma model ID; defaults to `gemma-4-26b-a4b-it`.
 - `PORT`: optional HTTP port; the host-provided port is used when deployed.
 
-The API limits each running process to 12 mission requests per minute and rejects context longer than 200 characters. This in-memory limit resets when the process restarts and is not a global quota or billing control. The service worker caches the app shell and same-origin static assets, never API responses; the saved card stays in local storage. A small screen disclaimer asks users to stay in a familiar, permitted place; generated activities are still reviewed for obvious unsafe instructions. Use your judgment and stop if anything feels unsafe.
+The interface follows the browser language on first visit and lets people switch between English and Brazilian Portuguese; the choice stays on the device. Generated missions use that language too. The API limits each running process to 12 mission requests per minute and rejects context longer than 200 characters. This in-memory limit resets when the process restarts and is not a global quota or billing control. The service worker caches the app shell and same-origin static assets, never API responses; the saved card stays in local storage. A small screen disclaimer asks users to stay in a familiar, permitted place; generated activities are still reviewed for obvious unsafe instructions. Use your judgment and stop if anything feels unsafe.
 
 ## Check
 

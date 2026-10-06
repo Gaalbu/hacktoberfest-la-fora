@@ -4,12 +4,14 @@ import { generateMission, parseMission, validateMissionInput } from './mission.j
 
 test('accepts bounded preferences and normalizes optional context', () => {
   assert.deepEqual(validateMissionInput({
+    language: 'en',
     duration: 10,
     environment: 'porch',
     movement: 'still',
     focus: 'sounds',
     context: '  rainy morning  ',
   }), {
+    language: 'en',
     duration: 10,
     environment: 'porch',
     movement: 'still',
@@ -18,9 +20,10 @@ test('accepts bounded preferences and normalizes optional context', () => {
   })
 })
 
-test('rejects unsupported choices, legacy language fields and oversized context', () => {
-  assert.throws(() => validateMissionInput({ duration: 20 }), /Invalid mission preferences/)
-  assert.throws(() => validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'shapes', context: 'x'.repeat(201) }), /Invalid mission preferences/)
+test('rejects unsupported choices, locales and oversized context', () => {
+  assert.throws(() => validateMissionInput({ duration: 20, language: 'en' }), /Invalid mission preferences/)
+  assert.throws(() => validateMissionInput({ language: 'fr', duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '' }), /Invalid mission preferences/)
+  assert.throws(() => validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'shapes', context: 'x'.repeat(201), language: 'en' }), /Invalid mission preferences/)
   assert.throws(() => validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'shapes', context: '', language: 'pt' }), /Invalid mission preferences/)
 })
 
@@ -32,6 +35,12 @@ test('accepts only a safe mission with one question and three concise steps', ()
   }), { duration: 5 })
   assert.equal(mission.duration, 5)
   assert.equal(mission.steps.length, 3)
+})
+
+test('accepts Gemma wrapping one mission in an array but rejects multiple missions', () => {
+  const mission = { title: 'Sons da varanda', question: 'Que sons discretos você percebe ao redor?', steps: ['Fique em um lugar conhecido.', 'Escute por um minuto.', 'Perceba um som distante.'] }
+  assert.equal(parseMission(JSON.stringify([mission]), { duration: 5 }).title, mission.title)
+  assert.throws(() => parseMission(JSON.stringify([mission, mission]), { duration: 5 }), /invalid/i)
 })
 
 test('rejects malformed, incomplete, mismatched and unsafe model output', () => {
@@ -48,7 +57,7 @@ test('reports missing credentials without contacting the provider', async () => 
 
 test('sends the key in a header and returns only the validated mission', async () => {
   let request
-  const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '' })
+  const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '', language: 'en' })
   const mission = await generateMission(input, {
     apiKey: 'test-only-secret', model: 'gemma-4-26b-a4b-it',
     fetchImpl: async (url, options) => {
@@ -59,12 +68,13 @@ test('sends the key in a header and returns only the validated mission', async (
   assert.match(request.url, /gemma-4-26b-a4b-it:generateContent/)
   assert.equal(request.options.headers['x-goog-api-key'], 'test-only-secret')
   assert.equal(request.url.includes('test-only-secret'), false)
+  assert.deepEqual(JSON.parse(request.options.body).generationConfig.thinkingConfig, { thinkingLevel: 'minimal' })
   assert.equal(mission.duration, 5)
   assert.equal(mission.steps.length, 3)
 })
 
 test('ignores Gemma thought parts and parses only its final response', async () => {
-  const input = validateMissionInput({ duration: 10, environment: 'porch', movement: 'still', focus: 'sounds', context: '' })
+  const input = validateMissionInput({ duration: 10, environment: 'porch', movement: 'still', focus: 'sounds', context: '', language: 'en' })
   const result = await generateMission(input, {
     apiKey: 'key', model: 'gemma-4-26b-a4b-it',
     fetchImpl: async () => ({ ok: true, json: async () => ({ candidates: [{ content: { parts: [
@@ -75,15 +85,31 @@ test('ignores Gemma thought parts and parses only its final response', async () 
   assert.equal(result.title, 'Listen nearby')
 })
 
+
+test('requests and accepts a Brazilian Portuguese mission when selected', async () => {
+  const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '', language: 'pt-BR' })
+  let sentPrompt = ''
+  const mission = await generateMission(input, {
+    apiKey: 'key', model: 'gemma-4-26b-a4b-it',
+    fetchImpl: async (_url, options) => {
+      sentPrompt = JSON.parse(options.body).contents[0].parts[0].text
+      return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: JSON.stringify({ title: 'Sons da varanda', question: 'Que sons discretos você consegue perceber agora?', steps: ['Fique em um lugar familiar.', 'Escute por um minuto.', 'Perceba um som que passaria despercebido.'] }) }] } }] }) }
+    },
+  })
+  assert.match(sentPrompt, /Brazilian Portuguese/)
+  assert.match(sentPrompt, /property names exactly in English as "title", "question", and "steps"/)
+  assert.equal(mission.title, 'Sons da varanda')
+})
+
 test('maps quota, provider failure and timeout without leaking upstream details', async () => {
-  const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '' })
+  const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '', language: 'en' })
   await assert.rejects(generateMission(input, { apiKey: 'key', model: 'm', fetchImpl: async () => ({ ok: false, status: 429 }) }), { status: 429 })
   await assert.rejects(generateMission(input, { apiKey: 'key', model: 'm', fetchImpl: async () => ({ ok: false, status: 500 }) }), { status: 502 })
   await assert.rejects(generateMission(input, { apiKey: 'key', model: 'm', fetchImpl: async () => { throw new DOMException('sensitive provider details', 'TimeoutError') } }), { status: 504 })
 })
 
 test('retries invalid model output once, then stops', async () => {
-  const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '' })
+  const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '', language: 'en' })
   let calls = 0
   const result = await generateMission(input, {
     apiKey: 'key', model: 'm',
