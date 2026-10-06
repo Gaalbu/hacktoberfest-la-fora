@@ -59,7 +59,7 @@ export async function generateMission(input, { apiKey, model, fetchImpl = fetch 
       response = await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
-        body: JSON.stringify({ contents: [{ parts: [{ text: `${prompt}${attempt ? ' The previous response did not match the required JSON schema. Return corrected JSON only.' : ''}` }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.8, thinkingConfig: { thinkingLevel: 'minimal' } } }),
+        body: JSON.stringify({ contents: [{ parts: [{ text: `${prompt}${attempt ? ' The previous response failed format or safety checks. Keep eyes open, follow every safety rule above, and return corrected JSON only.' : ''}` }] }], generationConfig: { responseMimeType: 'application/json', temperature: 0.8, thinkingConfig: { thinkingLevel: 'minimal' } } }),
         signal: AbortSignal.timeout(20_000),
       })
     } catch (error) {
@@ -71,7 +71,7 @@ export async function generateMission(input, { apiKey, model, fetchImpl = fetch 
     try {
       return parseMission(text || '', input)
     } catch (error) {
-      if (attempt === 1 || error.message !== 'Invalid mission format') throw error
+      if (attempt === 1 || !/Invalid mission format|safety check/.test(error.message)) throw error
     }
   }
   throw new Error('Invalid mission format')

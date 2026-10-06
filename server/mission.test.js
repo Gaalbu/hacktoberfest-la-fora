@@ -131,3 +131,22 @@ test('retries invalid model output once, then stops', async () => {
   await assert.rejects(generateMission(input, { apiKey: 'key', model: 'm', fetchImpl: async () => { calls += 1; return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: 'invalid' }] } }] }) } } }), { message: 'Invalid mission format' })
   assert.equal(calls, 2)
 })
+
+test('retries one unsafe model answer and keeps eyes-open constraints', async () => {
+  const input = validateMissionInput({ duration: 5, environment: 'porch', movement: 'still', focus: 'sounds', context: '', language: 'en' })
+  const requests = []
+  const result = await generateMission(input, {
+    apiKey: 'key', model: 'gemma-4-26b-a4b-it',
+    fetchImpl: async (_url, options) => {
+      requests.push(JSON.parse(options.body).contents[0].parts[0].text)
+      const unsafe = requests.length === 1
+        ? { title: 'Quiet listening', question: 'What sound do you notice?', steps: ['Close your eyes while standing on the porch.', 'Listen for one minute.', 'Notice one sound nearby.'] }
+        : { title: 'Listen nearby', question: 'What sound do you notice around you?', steps: ['Stand in a familiar place.', 'Keep your eyes open and listen.', 'Notice one sound nearby.'] }
+      return { ok: true, json: async () => ({ candidates: [{ content: { parts: [{ text: JSON.stringify(unsafe) }] } }] }) }
+    },
+  })
+  assert.equal(requests.length, 2)
+  assert.match(requests[1], /failed format or safety checks/i)
+  assert.match(requests[1], /Keep eyes open/)
+  assert.equal(result.title, 'Listen nearby')
+})
