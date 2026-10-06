@@ -13,7 +13,7 @@ const words = {
 
 function readCard(): Card | null {
   const candidate = readSavedCard<Mission>()
-  if (!candidate || typeof candidate.mission?.title !== 'string' || typeof candidate.mission.question !== 'string' || !Array.isArray(candidate.mission.steps) || candidate.mission.steps.length !== 3) return null
+  if (!candidate || typeof candidate.mission?.title !== 'string' || typeof candidate.mission.question !== 'string' || !Array.isArray(candidate.mission.steps) || candidate.mission.steps.length !== 3 || candidate.mission.steps.some((step) => typeof step !== 'string') || ![5, 10, 15].includes(candidate.mission.duration)) return null
   return candidate
 }
 
@@ -46,7 +46,7 @@ function App() {
       setStorageUnavailable(!writeSavedCard(next))
       setCard(next); setView('mission')
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t.error)
+      setError(!navigator.onLine ? t.generatingOffline : cause instanceof Error ? cause.message : t.error)
     } finally { setBusy(false) }
   }
 
