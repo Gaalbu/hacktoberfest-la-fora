@@ -23,7 +23,7 @@ Open http://localhost:3000. The app stores only the latest mission and its notes
 - `GEMMA_MODEL`: supported Gemma model ID; defaults to `gemma-4-26b-a4b-it`.
 - `PORT`: optional HTTP port; the host-provided port is used when deployed.
 
-The API limits each running process to 12 mission requests per minute and rejects context longer than 200 characters. This in-memory limit resets when the process restarts and is not a global quota or billing control. A small screen disclaimer asks users to stay in a familiar, permitted place; generated activities are still reviewed for obvious unsafe instructions. Use your judgment and stop if anything feels unsafe.
+The API limits each running process to 12 mission requests per minute and rejects context longer than 200 characters. This in-memory limit resets when the process restarts and is not a global quota or billing control. The service worker caches the app shell and same-origin static assets, never API responses; the saved card stays in local storage. A small screen disclaimer asks users to stay in a familiar, permitted place; generated activities are still reviewed for obvious unsafe instructions. Use your judgment and stop if anything feels unsafe.
 
 ## Check
 
