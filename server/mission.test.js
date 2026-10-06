@@ -49,6 +49,9 @@ test('rejects malformed, incomplete, mismatched and unsafe model output', () => 
   assert.throws(() => parseMission(JSON.stringify({ title: 'x', question: 'y', steps: ['step', 'step', 'step'], duration: 60 }), { duration: 5 }), /invalid/i)
   assert.throws(() => parseMission(JSON.stringify({ title: 'x', question: 'y', steps: ['Climb a roof.', 'Listen quietly.', 'Walk back.'] }), { duration: 5 }), /safety/i)
   assert.throws(() => parseMission(JSON.stringify({ title: 'Climb a roof.', question: 'Which sound changes when you become still?', steps: ['Stand in a familiar place.', 'Listen for one minute.', 'Notice one sound you had missed.'] }), { duration: 5 }), /safety/i)
+  assert.throws(() => parseMission(JSON.stringify({ title: 'Listen closely', question: 'What changes when you listen carefully?', steps: ['Close your eyes while walking near the porch edge.', 'Listen for one minute.', 'Notice one sound you had missed.'] }), { duration: 5 }), /safety/i)
+  assert.throws(() => parseMission(JSON.stringify({ title: 'Escuta tranquila', question: 'Que som você percebe agora?', steps: ['Feche os olhos perto da borda da varanda.', 'Escute por um minuto.', 'Perceba um som diferente.'] }), { duration: 5 }), /safety/i)
+  assert.throws(() => parseMission(JSON.stringify({ title: 'Quiet listening', question: 'What do you hear nearby?', steps: ['Listen with your eyes closed.', 'Stay where you are.', 'Name one sound.'] }), { duration: 5 }), /safety/i)
 })
 
 test('reports missing credentials without contacting the provider', async () => {
@@ -97,6 +100,8 @@ test('requests and accepts a Brazilian Portuguese mission when selected', async 
     },
   })
   assert.match(sentPrompt, /Brazilian Portuguese/)
+  assert.match(sentPrompt, /Keep eyes open at all times/)
+  assert.match(sentPrompt, /natural, idiomatic language/)
   assert.match(sentPrompt, /property names exactly in English as "title", "question", and "steps"/)
   assert.equal(mission.title, 'Sons da varanda')
 })
