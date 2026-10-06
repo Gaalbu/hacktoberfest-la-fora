@@ -1,0 +1,17 @@
+# Local planning and handoff notes: do not publish.
+/tasks/
+/hacktoberfest_week1_recap.txt
+
+# Credentials and local overrides. Keep only the blank template in Git.
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated output.
+/node_modules/
+/dist/
+/coverage/
+
+# Local editor and design planning.
+/.hallmark/
+/.DS_Store
