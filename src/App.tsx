@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import { clearSavedCard, readSavedCard, writeSavedCard, type SavedCard } from './storage'
 
 type Mission = { title: string; question: string; steps: string[]; duration: number; promptVersion: number; source: string }
-type Card = { mission: Mission; notes: [string, string, string] }
+type Card = SavedCard<Mission>
 type Language = 'pt' | 'en'
 
 const words = {
@@ -10,17 +11,10 @@ const words = {
   en: { brand: 'Out There', eyebrow: 'A MOMENT TO NOTICE', lead: 'What is here\naround you?', intro: 'A small observation mission to step out of autopilot, without going far or needing to know anything in advance.', duration: 'Your time', place: 'Where are you?', movement: 'Your pace', focus: 'Notice', context: 'A detail about this place (optional)', contextHint: 'Up to 200 characters. No address, please.', generate: 'Make my mission', minutes: 'minutes', still: 'Stay nearby', walk: 'Take a short walk', places: { porch: 'Porch', yard: 'Yard', park: 'Familiar park' }, focuses: { shapes: 'Shapes', sounds: 'Sounds', light: 'Light & shade' }, loading: 'Making your mission…', error: 'Could not make a mission right now.', retry: 'Try again', mission: 'YOUR MISSION', save: 'Save for later', back: 'Back', return: 'What did you notice?', note: 'Write down what you noticed. It can be something small.', placeholders: ['One thing I had not noticed…', 'A sound, shape or detail…', 'What surprised me…'], finish: 'Save my discoveries', clear: 'Clear card', copy: 'Copy card', copied: 'Card copied', saved: 'Mission saved on this device', safety: 'Stay somewhere familiar and permitted. Do not touch, collect or feed wildlife. If anything feels unsafe, head back.', empty: 'No saved mission yet.', generatingOffline: 'Connect to the internet to make a new mission.', language: 'PT', returnButton: 'I am back', change: 'Choose another mission' },
 } as const
 
-const storageKey = 'la-fora-card-v1'
 function readCard(): Card | null {
-  try {
-    const raw = localStorage.getItem(storageKey)
-    if (!raw) return null
-    const value: unknown = JSON.parse(raw)
-    if (!value || typeof value !== 'object' || !('mission' in value) || !('notes' in value)) return null
-    const candidate = value as Card
-    if (typeof candidate.mission?.title !== 'string' || typeof candidate.mission.question !== 'string' || !Array.isArray(candidate.mission.steps) || candidate.mission.steps.length !== 3 || !Array.isArray(candidate.notes) || candidate.notes.length !== 3 || candidate.notes.some((note) => typeof note !== 'string')) return null
-    return candidate
-  } catch { return null }
+  const candidate = readSavedCard<Mission>()
+  if (!candidate || typeof candidate.mission?.title !== 'string' || typeof candidate.mission.question !== 'string' || !Array.isArray(candidate.mission.steps) || candidate.mission.steps.length !== 3) return null
+  return candidate
 }
 
 function App() {
@@ -36,12 +30,7 @@ function App() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
-
-  useEffect(() => {
-    if (card) {
-      try { localStorage.setItem(storageKey, JSON.stringify(card)) } catch { /* storage can be disabled by browser policy */ }
-    }
-  }, [card, language])
+  const [storageUnavailable, setStorageUnavailable] = useState(false)
 
   useEffect(() => {
     document.documentElement.lang = language === 'pt' ? 'pt-BR' : 'en'
@@ -54,6 +43,7 @@ function App() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || t.error)
       const next = { mission: result as Mission, notes: ['', '', ''] as [string, string, string] }
+      setStorageUnavailable(!writeSavedCard(next))
       setCard(next); setView('mission')
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t.error)
@@ -63,7 +53,9 @@ function App() {
   function updateNote(index: number, value: string) {
     if (!card) return
     const notes = [...card.notes] as [string, string, string]; notes[index] = value
-    setCard({ ...card, notes })
+    const next = { ...card, notes }
+    setStorageUnavailable(!writeSavedCard(next))
+    setCard(next)
   }
 
   function saveNotes() {
@@ -86,7 +78,7 @@ function App() {
   }
 
   function clearCard() {
-    try { localStorage.removeItem(storageKey) } catch { /* storage may be disabled */ }
+    clearSavedCard()
     setCard(null); setView('prepare'); setNotice('')
   }
 
@@ -109,6 +101,7 @@ function App() {
     {view === 'return' && <section className="panel return" aria-labelledby="return-title"><div className="section-head"><span className="step-number">03</span><div><p className="eyebrow">{language === 'pt' ? 'BEM-VINDA DE VOLTA' : 'WELCOME BACK'}</p><h2 id="return-title">{t.return}</h2></div></div><p className="lede return-lede">{t.note}</p>{card && <><div className="return-prompt">{card.mission.question}</div>{t.placeholders.map((placeholder, index) => <label className="sr-only" key={placeholder} htmlFor={`note-${index}`}>{placeholder}</label>)}{t.placeholders.map((placeholder, index) => <textarea className="note" key={placeholder} id={`note-${index}`} maxLength={240} rows={2} value={card.notes[index]} onChange={(event) => updateNote(index, event.target.value)} placeholder={placeholder} />)}</>}<div className="button-row"><button className="primary" type="button" onClick={saveNotes}>{t.finish}<span aria-hidden="true">✓</span></button></div><div className="utility-row"><button className="text-button" type="button" onClick={copyCard}>{t.copy}</button><button className="text-button danger" type="button" onClick={clearCard}>{t.clear}</button></div></section>}
 
     <footer><p>{t.safety}</p><a href="https://ai.google.dev/gemma" target="_blank" rel="noreferrer">{language === 'pt' ? 'Feito com Gemma' : 'Made with Gemma'} ↗</a></footer>
+    {storageUnavailable && <output className="notice">{language === 'pt' ? 'Não foi possível guardar neste dispositivo.' : 'Could not save on this device.'}</output>}
     {notice && <output className="notice">{notice}</output>}
     {error && view !== 'prepare' && <div className="notice error-notice" role="alert">{error} <button onClick={() => setView('prepare')}>{t.retry}</button></div>}
   </main>

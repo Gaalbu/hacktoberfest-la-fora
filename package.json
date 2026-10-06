@@ -7,7 +7,7 @@
     "dev": "node --env-file-if-exists=.env server/index.js",
     "build": "tsc -b && vite build",
     "start": "node server/index.js",
-    "test": "node --test server/*.test.js",
+    "test": "node --test server/*.test.js && vitest run src/storage.test.ts",
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "aislop": "^0.18.0",
     "typescript": "~6.0.2",
-    "vite": "^8.3.0"
+    "vite": "^8.3.0",
+    "vitest": "^4.0.0"
   }
 }
