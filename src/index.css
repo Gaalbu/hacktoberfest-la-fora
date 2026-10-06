@@ -1,0 +1,23 @@
+:root {
+  /* editorial pocket guide: paper neutrals, field green, one warm sun accent */
+  --ink: #26291f;
+  --muted: #6d7064;
+  --green: #405d43;
+  --orange: #d36c3f;
+  --peach: #f2d7bf;
+  --paper: #fbfaf4;
+  --line: #deded1;
+  --serif: Georgia, 'Times New Roman', serif;
+  --sans: 'Avenir Next', Avenir, 'Segoe UI', sans-serif;
+  font: 16px/1.5 var(--sans);
+  color: var(--ink);
+  background: #f7f6ef;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+* { box-sizing: border-box; }
+body { min-width: 320px; min-height: 100vh; margin: 0; }
+button, textarea { font: inherit; }
+::selection { color: white; background: var(--green); }

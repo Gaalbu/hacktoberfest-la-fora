@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: la-fora
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMMA_MODEL
+        value: gemma-4-26b-a4b-it
