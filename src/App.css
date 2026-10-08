@@ -26,6 +26,13 @@ h1 span { display: block; }
 .orbit-sun { position: absolute; top: 8px; left: 6px; color: var(--orange); font-size: 25px; }
 .orbit-leaf { position: absolute; right: 4px; top: 42px; font-size: 42px; transform: rotate(70deg); }
 .orbit-dot { position: absolute; left: 20px; bottom: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+.weekly-rhythm { width: min(100%, 690px); margin: 26px auto 0; padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255, 254, 248, .75); }
+.rhythm-copy .eyebrow { margin-bottom: 3px; }
+.rhythm-count { margin: 0; color: var(--ink); font: 500 20px/1.2 var(--serif); }
+.rhythm-hint { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+.rhythm-days { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.rhythm-day { width: 33px; height: 33px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); background: var(--paper); font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.rhythm-day.completed { border-color: var(--green); color: var(--white); background: var(--green); }
 .panel { width: min(100%, 690px); margin: 42px auto 70px; padding: clamp(24px, 5vw, 48px); background: var(--paper); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--panel-shadow); animation: arrive .55s cubic-bezier(.2,.7,.2,1) both; }
 .section-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 30px; }
 .step-number { width: 35px; height: 35px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; color: var(--green); font: 700 11px var(--sans); }
@@ -82,6 +89,9 @@ footer a { flex: 0 0 auto; color: var(--green); text-decoration: none; font-weig
 .sun-card small { margin-top: 5px; font-size: 8px; }
   .orbit { left: auto; right: 9px; bottom: -7px; width: 70px; height: 70px; }
   .orbit-leaf { top: 23px; font-size: 31px; }
+  .weekly-rhythm { align-items: flex-start; flex-direction: column; margin-top: 20px; padding: 16px; gap: 13px; }
+  .rhythm-days { width: 100%; justify-content: space-between; gap: 5px; }
+  .rhythm-day { width: 31px; height: 31px; }
   .panel { margin: 25px auto 44px; padding: 23px 18px; }
   .section-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; margin-bottom: 24px; }
   .step-number { width: 30px; height: 30px; }

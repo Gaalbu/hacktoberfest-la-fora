@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
-import { clearSavedCard, readLanguage, readSavedCard, writeLanguage, writeSavedCard, type Language, type SavedCard } from './storage'
+import { clearSavedCard, localDateKey, readLanguage, readSavedCard, readWeeklyRhythm, recordWeeklyPause, writeLanguage, writeSavedCard, type Language, type SavedCard } from './storage'
 
 type Mission = { title: string; question: string; steps: string[]; duration: number; promptVersion: number; source: string }
 type Card = SavedCard<Mission>
@@ -12,7 +12,7 @@ const copy = {
     description: 'A small observation mission to step out of autopilot, without going far.',
     eyebrow: 'A MOMENT TO NOTICE',
     lead: 'What is here\naround you?',
-    intro: 'A small observation mission to step out of autopilot, without going far or needing to know anything in advance.',
+    intro: 'A little outside, between everything. Short observation missions for your commute stop, work break, campus, or close to home.',
     duration: 'Your time', place: 'Where are you?', movement: 'Your pace', focus: 'Notice',
     context: 'A detail about this place (optional)', contextHint: 'Up to 200 characters. No address, please.',
     generate: 'Make my mission', minutes: 'minutes', still: 'Stay nearby', walk: 'Take a short walk',
@@ -30,6 +30,8 @@ const copy = {
     returnButton: 'I am back', change: 'Choose another mission', languageLabel: 'Choose language',
     start: 'START HERE', startTitle: 'Set up your pause', welcome: 'WELCOME BACK',
     copyUnavailable: 'Copy is unavailable in this browser.', storageUnavailable: 'Could not save on this device.',
+    rhythmTitle: 'Your past 7 days', rhythmCount: (count: number) => count === 1 ? 'A pause on 1 day' : `Pauses on ${count} days`, rhythmHint: 'Pick up whenever your day has room.',
+    lastSevenDays: 'Pause days over the last 7 days', pauseLogged: 'pause logged', noPause: 'no pause logged',
     lookCloser: 'LOOK\nCLOSER', madeWith: 'Made with Gemma',
     invalidOptions: 'Check the mission options and try again.',
     quota: 'The free model quota is busy. Please try again later.',
@@ -44,7 +46,7 @@ const copy = {
     description: 'Uma pequena missão de observação para sair do piloto automático sem ir longe.',
     eyebrow: 'UM MOMENTO PARA PERCEBER',
     lead: 'O que existe\npor aqui?',
-    intro: 'Uma pequena missão de observação para sair do piloto automático sem ir longe nem precisar saber nada antes.',
+    intro: 'Um pouco lá fora, entre uma coisa e outra. Missões curtas para uma parada segura no trajeto, uma pausa no trabalho, na faculdade ou perto de casa.',
     duration: 'Seu tempo', place: 'Onde você está?', movement: 'Seu ritmo', focus: 'Observe',
     context: 'Um detalhe deste lugar (opcional)', contextHint: 'Até 200 caracteres. Sem endereço, por favor.',
     generate: 'Criar minha missão', minutes: 'minutos', still: 'Ficar por perto', walk: 'Fazer uma caminhada curta',
@@ -62,6 +64,8 @@ const copy = {
     returnButton: 'Voltei', change: 'Escolher outra missão', languageLabel: 'Escolher idioma',
     start: 'COMECE AQUI', startTitle: 'Prepare sua pausa', welcome: 'QUE BOM QUE VOCÊ VOLTOU',
     copyUnavailable: 'Não foi possível copiar neste navegador.', storageUnavailable: 'Não foi possível salvar neste dispositivo.',
+    rhythmTitle: 'Seus últimos 7 dias', rhythmCount: (count: number) => count === 1 ? 'Uma pausa em 1 dia' : `Pausas em ${count} dias`, rhythmHint: 'Volte quando couber na sua rotina.',
+    lastSevenDays: 'Dias com pausa nos últimos 7 dias', pauseLogged: 'pausa registrada', noPause: 'sem pausa registrada',
     lookCloser: 'OLHE\nDE PERTO', madeWith: 'Feito com Gemma',
     invalidOptions: 'Confira as opções da missão e tente novamente.',
     quota: 'A cota gratuita do modelo está ocupada. Tente novamente em instantes.',
@@ -78,9 +82,22 @@ function readCard(): Card | null {
   return candidate
 }
 
+function createRhythmDays(language: Language) {
+  const today = new Date()
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 6 + index)
+    return {
+      key: localDateKey(date),
+      label: new Intl.DateTimeFormat(language, { weekday: 'narrow' }).format(date),
+      accessibleDate: new Intl.DateTimeFormat(language, { weekday: 'long', month: 'short', day: 'numeric' }).format(date),
+    }
+  })
+}
+
 function App() {
   const [language, setLanguage] = useState<Language>(() => readLanguage() || (navigator.language.toLowerCase().startsWith('pt') ? 'pt-BR' : 'en'))
   const t = copy[language]
+  const [rhythmDays, setRhythmDays] = useState(() => createRhythmDays(language))
   useEffect(() => {
     document.documentElement.lang = language
     document.title = t.pageTitle
@@ -92,6 +109,7 @@ function App() {
   const [focus, setFocus] = useState<'shapes' | 'sounds' | 'light'>('sounds')
   const [context, setContext] = useState('')
   const [card, setCard] = useState<Card | null>(() => readCard())
+  const [rhythm, setRhythm] = useState<string[]>(() => readWeeklyRhythm())
   const [view, setView] = useState<'prepare' | 'mission' | 'return'>(() => readCard() ? 'mission' : 'prepare')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -124,8 +142,16 @@ function App() {
   }
 
   function saveNotes() {
+    if (recordWeeklyPause()) setRhythm(readWeeklyRhythm())
+    else setStorageUnavailable(true)
     setView('mission')
     setNotice(t.saved)
+  }
+
+  function changeLanguage(next: Language) {
+    setLanguage(next)
+    writeLanguage(next)
+    setRhythmDays(createRhythmDays(next))
   }
 
   async function copyCard() {
@@ -148,8 +174,16 @@ function App() {
   }
 
   return <main className="page">
-    <header className="topbar"><a className="wordmark" href="#top" aria-label={t.brand}><span className="sunmark" aria-hidden="true">✳</span>{t.brand}</a><fieldset className="language-switch"><legend className="sr-only">{t.languageLabel}</legend><button type="button" aria-label="English" aria-pressed={language === 'en'} onClick={() => { setLanguage('en'); writeLanguage('en') }}>EN</button><button type="button" aria-label="Português do Brasil" aria-pressed={language === 'pt-BR'} onClick={() => { setLanguage('pt-BR'); writeLanguage('pt-BR') }}>PT-BR</button></fieldset></header>
+    <header className="topbar"><a className="wordmark" href="#top" aria-label={t.brand}><span className="sunmark" aria-hidden="true">✳</span>{t.brand}</a><fieldset className="language-switch"><legend className="sr-only">{t.languageLabel}</legend><button type="button" aria-label="English" aria-pressed={language === 'en'} onClick={() => changeLanguage('en')}>EN</button><button type="button" aria-label="Português do Brasil" aria-pressed={language === 'pt-BR'} onClick={() => changeLanguage('pt-BR')}>PT-BR</button></fieldset></header>
     <section id="top" className="intro"><div className="intro-copy"><p className="eyebrow">{t.eyebrow}</p><h1>{t.lead.split('\n').map((line) => <span key={line}>{line}</span>)}</h1><p className="lede">{t.intro}</p><div className="orbit" aria-hidden="true"><span className="orbit-sun">✳</span><span className="orbit-leaf">⌁</span><span className="orbit-dot" /></div></div><div className="sun-card" aria-hidden="true"><span>✳</span><small>{t.lookCloser.split('\n').map((line) => <span key={line}>{line}</span>)}</small></div></section>
+
+    <section className="weekly-rhythm" aria-labelledby="rhythm-title">
+      <div className="rhythm-copy"><p id="rhythm-title" className="eyebrow">{t.rhythmTitle}</p><p className="rhythm-count" aria-live="polite">{t.rhythmCount(rhythm.length)}</p><p className="rhythm-hint">{t.rhythmHint}</p></div>
+      <ol className="rhythm-days" aria-label={t.lastSevenDays}>{rhythmDays.map((day) => {
+        const completed = rhythm.includes(day.key)
+        return <li key={day.key}><span className={completed ? 'rhythm-day completed' : 'rhythm-day'} aria-hidden="true">{day.label}</span><span className="sr-only">{day.accessibleDate}: {completed ? t.pauseLogged : t.noPause}</span></li>
+      })}</ol>
+    </section>
 
     {view === 'prepare' && <section className="panel prepare" aria-labelledby="prepare-title"><div className="section-head"><span className="step-number">01</span><div><p className="eyebrow">{t.start}</p><h2 id="prepare-title">{t.startTitle}</h2></div></div>
       <fieldset><legend>{t.duration}</legend><div className="choice-row">{[5, 10, 15].map((minutes) => <button type="button" className={`choice ${duration === minutes ? 'selected' : ''}`} aria-pressed={duration === minutes} key={minutes} onClick={() => setDuration(minutes)}>{minutes} <small>{t.minutes}</small></button>)}</div></fieldset>
